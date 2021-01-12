@@ -1,7 +1,7 @@
 {
-    "name": "Progressive Web App example",
-    "short_name": "pwa-tutorial",
-    "description": "Progressive Web App example to be used in conjuction with the article in LogRocket",
+    "name": "Technology Evolved",
+    "short_name": "Datastack",
+    "description": "A PWA used to control devices that is connected to",
     "icons": [
       {
         "src": "../images/icon-192x192.png",
@@ -26,6 +26,6 @@
     ],
     "start_url": "/",
     "display": "fullscreen",
-    "theme_color": "#764ABC",
-    "background_color": "#764ABC"
+    "theme_color": "#ffffff",
+    "background_color": "#ffffff"
   }
