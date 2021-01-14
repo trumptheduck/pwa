@@ -21,6 +21,9 @@ app.get('/', function(req, res) {
 app.get('/devices', function(req, res) {
   res.sendFile(path.join(__dirname, 'public/devices.html'))
 })
+app.get('/test', function(req, res) {
+  res.sendFile(path.join(__dirname, 'public/test.html'))
+})
 
 http.listen(httpPort, function () {
   console.log(`Listening on port ${httpPort}!`)
