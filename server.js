@@ -16,7 +16,7 @@ io.on('connection', (socket)=> {
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.get('/', function(req, res) {
-  res.sendFile(path.join(__dirname, 'public/index.html'))
+  res.sendFile(path.join(__dirname, 'public/messenger.html'))
 })
 app.get('/devices', function(req, res) {
   res.sendFile(path.join(__dirname, 'public/devices.html'))
