@@ -133,11 +133,11 @@ io.on('connection',(socket)=>{
   socket.on('login',(credentials) => {
       let user = users.find(user => user.username === credentials.username)
       if (user === undefined) {
-          socket.emit('loginState',"Username Invalid!")
+          socket.emit('loginState',"Tên đăng nhập không chính xác!")
           console.log("!!FAILED LOGIN ATTEMPT!!:", credentials.username)
       } else {
           if (!compare(credentials.password,user.hash)) {
-              socket.emit('loginState',"Password Incorrect!")
+              socket.emit('loginState',"Sai mật khẩu!")
               console.log("!!FAILED LOGIN ATTEMPT!!:", credentials.username)
           } else {
               socket.emit('loginState',true)

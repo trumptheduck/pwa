@@ -22,7 +22,11 @@
             height: 100%;
             background-color: white;
             z-index: 20;
+            transition-duration: 0.5s;
         }
+        #login-screen.hidden {
+                transform: translateX(100%);
+            }
             #login-wrapper {
                 position: absolute;
                 bottom: 40%;
@@ -36,10 +40,8 @@
         }
         #nav-bar {
             position: fixed;
-            top: 0%;
             left: 0%;
             width: 100%;
-            height: 8%;
             background-color: rgb(0, 132, 255);
             box-shadow: 1px 1px 4px grey;
             z-index: 10;
@@ -80,10 +82,8 @@
             }
         #main {
             position: fixed;
-            top: 8%;
             left: 0%;
             width: 100%;
-            height: 84%;
             background-color: white;
             overflow-y: scroll;
             overflow-x: hidden;
@@ -217,10 +217,8 @@
                 }
         #menu-bar {
             position: fixed;
-            top: 92%;
             left: 0%;
             width: 100%;
-            height: 8%;
             background-color:rgb(0, 132, 255);
             box-shadow: 0px -2px 4px grey;
             z-index: 10;
@@ -299,6 +297,10 @@
                 height: 100%;
                 z-index: 11;
                 background-color: white;
+                transition-duration: 0.5s;
+            }
+            #messenger.hidden {
+                transform: translateX(-100%);
             }
                 #messenger-nav {
                     position: absolute;
@@ -329,6 +331,7 @@
                     overflow-x: hidden;
                     overflow-y: scroll;
                     transition-duration: 0.3s;
+                    background-color: wheat;
                 }
                     .message-container {
                         position: relative;
@@ -381,6 +384,58 @@
                         width: 20%;
                         height: 100%;
                     }
+            #inbox-wrapper{
+                position: absolute;
+                top: 0%;
+                left: 0%;
+                width: 100%;
+                height: 100%;
+                transition-duration: 0.3s;
+            }
+            #inbox-wrapper.hidden{
+                opacity: 0%;
+                transform: translateY(-100%);
+            }
+            #bulletin-wrapper{
+                position: absolute;
+                top: 0%;
+                left: 0%;
+                width: 100%;
+                height: 100%;
+                transition-duration: 0.3s;
+            }
+            #bulletin-wrapper.hidden{
+                opacity: 0%;
+                transform: translateY(-100%);
+            }
+            #profile-wrapper{
+                position: absolute;
+                top: 0%;
+                left: 0%;
+                width: 100%;
+                height: 100%;
+                transition-duration: 0.3s;
+            }
+            #profile-wrapper.hidden{
+                opacity: 0%;
+                transform: translateY(-100%);   
+            }
+            #settings-wrapper{
+                position: absolute;
+                top: 0%;
+                left: 0%;
+                width: 100%;
+                height: 100%;
+                transition-duration: 0.3s;
+            }
+                #settings-logout {
+                   position: absolute; 
+                   top:0%;
+                }
+            #settings-wrapper.hidden{
+                opacity: 0%;
+                transform: translateY(-100%);
+            }
                 
     </style>
 </head>
@@ -402,14 +457,14 @@
         <div id="inbox-wrapper">
             <!--Template Injection-->
         </div>
-        <div id="bulletin-wrapper">
+        <div id="bulletin-wrapper" class="hidden">
             <div id="bulletin-new-post">
                 <div id="bulletin-new-post-profile-picture"></div>
                 <textarea placeholder="What's up..." class="form-control" id="bulletin-new-post-content"></textarea>
                 <button id="bulletin-new-post-submit" class="btn btn-primary">Post now</button>
             </div>
         </div>
-        <div id="profile-wrapper">
+        <div id="profile-wrapper" class="hidden">
             <div id="profile-banner"></div>
             <div id="profile-picture"></div>
             <div id="profile-name">
@@ -419,8 +474,8 @@
                 <p id="profile-desc-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
             </div>
         </div>     
-        <div id="settings-wrapper">
-            <p>Settings</p>
+        <div id="settings-wrapper" class="hidden">
+            <button class="btn btn-danger" id="settings-logout">Log out</button>
         </div>
     </div>
     <div id="menu-bar">
@@ -430,7 +485,7 @@
         <div id="menu-button-profile"></div>
         <div id="menu-button-settings"></div>
     </div>
-    <div id="messenger">
+    <div id="messenger" class="hidden">
         <div id="messenger-nav">
             <div id="messenger-nav-back"></div>
         </div>
@@ -452,24 +507,24 @@
     socket.on('loginState',(res)=>{
         if (res !== true) {
             alert(res)
+            localStorage.clear();
         } else {
-            alert("Login successful!")
+            if (localStorage.getItem("username")===null||localStorage.getItem("password")===null) {
+                localStorage.setItem('username',document.getElementById("login-username").value);
+                localStorage.setItem('password',document.getElementById("login-password").value);
+            }  
             ComponentsManager.toggleLoginScreen(false)
             socket.emit('requestServerData')
-            ComponentsManager.toggleMessenger(false);
             socket.on('serverDataResponse',(data)=>{
-                console.log(data)
                 User.data = data
                 MessageManager.renderRooms(User.data)
             })
             socket.on('serverDataUpdate',(data)=>{
-                console.log(data)
                 User.data = data
                 MessageManager.renderRooms(User.data)
                 if (Messenger.target !== '') {
                     User.refreshMessage()
-                }
-                
+                } 
             })
         }
     })
@@ -511,7 +566,7 @@
             let cusername = document.getElementById("login-username").value;
             let cpassword = document.getElementById("login-password").value;
             if (cusername === ''||cpassword === '') {
-                alert("Please enter your credentials")
+                alert("Hãy nhập đầy đủ thông tin đăng nhập!")
             } else {
                 socket.emit('login', {
                     username: cusername,
@@ -519,11 +574,29 @@
                 })
             } 
             
+        },
+        autoLogin: () => {
+            if (localStorage.getItem("username")!==null||localStorage.getItem("password")!==null) {
+                socket.emit('login', {
+                    username: localStorage.getItem("username"),
+                    password: localStorage.getItem("password")
+                })
+            }  
+        },
+        logout: () => {
+            if(window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
+                localStorage.clear();
+                location.href = location.href;
+            }
         }
     }
     document.getElementById('login-button').addEventListener('click',(ev) => {
         AccountManager.login()
     })
+    document.getElementById('settings-logout').addEventListener('click',(ev) => {
+        AccountManager.logout()
+    })
+
     const Messenger = {
             element: document.getElementById("messenger"),
             body:document.getElementById("messenger-body"),
@@ -531,12 +604,14 @@
             input:document.getElementById("messenger-input-text"),
             target: '',
             sendMessage: (receiver)=>{
-                console.log(receiver)
-                socket.emit('sendMessage',{
+                if(Messenger.input.value !== '') {
+                    console.log(receiver)
+                    socket.emit('sendMessage',{
                     target: receiver,
                     data: Messenger.input.value
                 })
                 Messenger.input.value = '';
+                }  
             }
         }
     const Components = {
@@ -546,9 +621,9 @@
             toggle: (visible) => {
                 const element = document.getElementById("inbox-wrapper");
                 if (visible) {
-                    element.style.display = "block"
+                    element.classList.remove("hidden")
                 } else {
-                    element.style.display = "none"
+                    element.classList.add("hidden")
                 }
             }
         },
@@ -558,9 +633,9 @@
             toggle: (visible) => {
                 const element = document.getElementById("profile-wrapper");
                 if (visible) {
-                    element.style.display = "block"
+                    element.classList.remove("hidden")
                 } else {
-                    element.style.display = "none"
+                    element.classList.add("hidden")
                 }
             }
         },
@@ -570,9 +645,9 @@
             toggle: (visible) => {
                 const element = document.getElementById("bulletin-wrapper");
                 if (visible) {
-                    element.style.display = "block"
+                    element.classList.remove("hidden")
                 } else {
-                    element.style.display = "none"
+                    element.classList.add("hidden")
                 }
             }
         },
@@ -582,9 +657,9 @@
             toggle: (visible) => {
                 const element = document.getElementById("settings-wrapper");
                 if (visible) {
-                    element.style.display = "block"
+                    element.classList.remove("hidden")
                 } else {
-                    element.style.display = "none"
+                    element.classList.add("hidden")
                 }
             }
         },
@@ -598,17 +673,17 @@
         },
         toggleMessenger: (visible) => {
             if (visible) {
-                document.getElementById("messenger").style.display = "block"
+                document.getElementById("messenger").classList.remove("hidden")
             } else {
-                document.getElementById("messenger").style.display = "none"
+                document.getElementById("messenger").classList.add("hidden")
             }
             
         },
         toggleLoginScreen: (visible) => {
             if (visible) {
-                document.getElementById("login-screen").style.display = "block"
+                document.getElementById("login-screen").classList.remove("hidden")
             } else {
-                document.getElementById("login-screen").style.display = "none"
+                document.getElementById("login-screen").classList.add("hidden")
             }
         }
     }
@@ -723,5 +798,15 @@
     document.getElementById("messenger-nav").style.height = `${viewheight*0.08}px`
     document.getElementById("messenger-body").style.top = `${viewheight*0.08}px`
     document.getElementById("messenger-input").style.height = `${viewheight*0.1}px`
+    document.getElementById("nav-bar").style.height = `${viewheight*0.08}px`
+    document.getElementById("main").style.height = `${viewheight*0.84}px`
+    document.getElementById("menu-bar").style.height = `${viewheight*0.08}px`
+    document.getElementById("nav-bar").style.width = `${viewwidth}px`
+    document.getElementById("main").style.width = `${viewwidth}px`
+    document.getElementById("menu-bar").style.width = `${viewwidth}px`
+    document.getElementById("nav-bar").style.top = `${viewheight*0}px`
+    document.getElementById("main").style.top = `${viewheight*0.08}px`
+    document.getElementById("menu-bar").style.top = `${viewheight*0.92}px`
+    AccountManager.autoLogin()
 </script>
 </html>
