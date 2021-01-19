@@ -328,6 +328,7 @@
                     height: 82%;
                     overflow-x: hidden;
                     overflow-y: scroll;
+                    transition-duration: 0.3s;
                 }
                     .message-container {
                         position: relative;
@@ -351,7 +352,7 @@
                         color: white(212, 212, 212);
                         
                     }
-                    .message-wrapper.remote {
+                    .message-wrapper.true {
                         float: left;
                         background-color: rgb(201, 199, 199);
                         color: black;
@@ -435,46 +436,6 @@
         </div>
         <div id="messenger-body">
             <!--Template Injection-->
-            <div class="message-container">
-                <div class="message-wrapper">
-                    <p class="message-text">asdadadasdas</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
-            <div class="message-container">
-                <div class="message-wrapper remote">
-                    <p class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ultricies tincidunt diam, in condimentum eros mollis in. Maecenas vehicula, ante quis porta ...</p>
-                </div>
-            </div>
 
         </div>
         <div id="messenger-input">
@@ -495,18 +456,54 @@
             alert("Login successful!")
             ComponentsManager.toggleLoginScreen(false)
             socket.emit('requestServerData')
+            ComponentsManager.toggleMessenger(false);
             socket.on('serverDataResponse',(data)=>{
                 console.log(data)
                 User.data = data
                 MessageManager.renderRooms(User.data)
+            })
+            socket.on('serverDataUpdate',(data)=>{
+                console.log(data)
+                User.data = data
+                MessageManager.renderRooms(User.data)
+                if (Messenger.target !== '') {
+                    User.refreshMessage()
+                }
+                
             })
         }
     })
     const User = {
         data: [],
         openMessage: (id)=>{
-            let room = User.data.find(room => room.username = id);
-            
+            let room = User.data.find(room => room.target === id);
+            Messenger.target = room.target;
+            Messenger.body.innerHTML = '';
+            for (let i = 0; i< room.message.length;i++) {
+                Messenger.body.innerHTML += `
+                    <div class="message-container">
+                        <div class="message-wrapper ${room.message[i].remote}">
+                            <p class="message-text">${room.message[i].data}</p>
+                        </div>
+                    </div>
+                    `
+            }
+            Messenger.body.scrollTop = Messenger.body.scrollHeight
+            ComponentsManager.toggleMessenger(true);
+        },
+        refreshMessage: () => {
+            let room = User.data.find(room => room.target === Messenger.target);
+            Messenger.body.innerHTML = '';
+            for (let i = 0; i< room.message.length;i++) {
+                Messenger.body.innerHTML += `
+                    <div class="message-container">
+                        <div class="message-wrapper ${room.message[i].remote}">
+                            <p class="message-text">${room.message[i].data}</p>
+                        </div>
+                    </div>
+                    `
+            }
+            Messenger.body.scrollTop = Messenger.body.scrollHeight;
         }
     }
     const AccountManager = {
@@ -527,6 +524,21 @@
     document.getElementById('login-button').addEventListener('click',(ev) => {
         AccountManager.login()
     })
+    const Messenger = {
+            element: document.getElementById("messenger"),
+            body:document.getElementById("messenger-body"),
+            submit:document.getElementById("messenger-input-submit"),
+            input:document.getElementById("messenger-input-text"),
+            target: '',
+            sendMessage: (receiver)=>{
+                console.log(receiver)
+                socket.emit('sendMessage',{
+                    target: receiver,
+                    data: Messenger.input.value
+                })
+                Messenger.input.value = '';
+            }
+        }
     const Components = {
         inbox: {
             name: "inbox",
@@ -602,10 +614,11 @@
     }
     const MessageManager = {
          renderRooms : (data) => {
+            Components.inbox.element.innerHTML = "";
         data.forEach(room => {
             Components.inbox.element.innerHTML += `
-            <div class="room-body" onclick="User.openMessage('${room.username}')">
-                <p class="room-name">${room.username}</p>
+            <div class="room-body" onclick="User.openMessage('${room.target}')">
+                <p class="room-name">${room.target}</p>
                 <div class="room-icon"></div>
                 <div class="room-lastest-wrapper">
                     <p class="room-lastest">${room.message[room.message.length-1].data}</p>
@@ -697,6 +710,9 @@
                     
                     button.action();
                 })
+            })
+            Messenger.submit.addEventListener('click',()=> {
+                Messenger.sendMessage(Messenger.target)
             })
         }
     }

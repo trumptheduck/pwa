@@ -6,52 +6,47 @@ const io = require('socket.io')(http);
 const httpPort = 80
 let users = [
   {
-    username: 'asdadasdad',
+    username: 'nhatyt123',
     hash: {
-      salt: 'b4126723ab33',
-      hashedpassword: '18582e7d6706eb3905faf71e318b2f87ffbdd00ca1dbeb603fdc151d5902059e8ddbc3d7b82a1c21d92825ab99b46ddb2d736b0b6483e3bc448a321fd396b54c'
+      salt: 'b76b1eb31e8a',
+      hashedpassword: '10c17d561254b5184fbd5ccb397aae868b3c08fdc83c3f932858902c14c96fb4949ba75147624472abce3872202f6d185d55fb7841018c6d8f8c09089f11b3d6'
     },
-    apikey: 'IkQOpkyfdNYAfLv5sEN8RIf2veQnSjEN'
-  }
-];
-const data = [
-  {
-    apikey: 'IkQOpkyfdNYAfLv5sEN8RIf2veQnSjEN',
     data: [
       {
-        username: "nhatyt123",
+        target: "hanghang1323",
+        updated: false,
         status: "read",
-        message:[
-          {
-            remote: false,
-            data: "sdjadiygdauyf8uaydafd8"
-          },
-          {
-            remote: false,
-            data: "sdjadiygdauyf8uaydafd8"
-          },
+        message: [
           {
             remote: true,
-            data: "sdjadiygdauyf8uaydafd8"
-          },
-          {
-            remote: false,
-            data: "sdjadiygdauyf8uaydafd8"
-          },
-          {
-            remote: true,
-            data: "sdjadiygdauyf8uaydafd8"
-          },
-          {
-            remote: false,
-            data: "sdjadiygdauyf8uaydafd8"
-          },
-
+            data: "a"
+          }
         ]
       }
     ]
-  }
-]
+  },
+  {
+    username: 'hanghang1323',
+    hash: {
+      salt: '508e3aa25307',
+      hashedpassword: '4edf780571ef9946adfca6f9a3643384df1c2111bc8c8a3f459a216226d6bd9759def568cbedf96f14d3569b2fd7f389a43ce1ff2ef0300c43fab2deaad19df6'
+    },
+    data: [
+      {
+        target: "nhatyt123",
+        updated: false,
+        status: "read",
+        message: [
+          {
+            remote: false,
+            data: "a"
+          }
+        ]
+      }
+    ]
+  },
+];
+
 
 //Password hash
 let crypto = require('crypto');
@@ -71,7 +66,6 @@ let generateSalt = rounds => {
     }
     return crypto.randomBytes(Math.ceil(rounds / 2)).toString('hex').slice(0, rounds);
 };
-logger(generateSalt(12))
 let hasher = (password, salt) => {
     let hash = crypto.createHmac('sha512', salt);
     hash.update(password);
@@ -90,7 +84,6 @@ let hash = (password, salt) => {
     }
     return hasher(password, salt);
 };
-logger(hash('nhat1234', generateSalt(12)))
 let compare = (password, hash) => {
     if (password == null || hash == null) {
         throw new Error('password and hash is required to compare');
@@ -123,7 +116,7 @@ const AccountManager = {
       users.push({
         username : username,
         hash : hash(password,generateSalt(12)),
-        apikey: makeid(32)
+        data : []
     });
     console.log(`Account: ${username} has been created!`)
     console.log('Users:',users)
@@ -135,27 +128,66 @@ const AccountManager = {
       console.log('Users:',users)
   }
 }
-
 io.on('connection',(socket)=>{
   console.log("A connection has been established!")
   socket.on('login',(credentials) => {
-      let user = users.find(user => user.username = credentials.username)
+      let user = users.find(user => user.username === credentials.username)
       if (user === undefined) {
           socket.emit('loginState',"Username Invalid!")
-          console.log()
+          console.log("!!FAILED LOGIN ATTEMPT!!:", credentials.username)
       } else {
           if (!compare(credentials.password,user.hash)) {
               socket.emit('loginState',"Password Incorrect!")
+              console.log("!!FAILED LOGIN ATTEMPT!!:", credentials.username)
           } else {
               socket.emit('loginState',true)
               console.log(`User ${user.username} is online!`)
-              let userData = data.find(repo => repo.apikey === user.apikey)
-              socket.emit('systemData', userData )
               socket.on('deleteAccount',()=>{
                   AccountManager.deleteAccount(user.username)
               })
               socket.on('requestServerData',() => {
-                socket.emit("serverDataResponse", userData.data)
+                socket.emit("serverDataResponse", user.data)
+              })
+              socket.on('sendMessage',(msg)=>{
+                console.log(msg,user.username)
+                let targetedRoomLocal = user.data.find(room => room.target === msg.target)
+                if (targetedRoomLocal == undefined) {
+                  console.log("Local Undefined!")
+                } else {
+                  targetedRoomLocal.message.push({
+                    remote : false,
+                    data: msg.data
+                  })
+                  targetedRoomLocal.updated = false;
+                }
+                let targetedRoomRemote = users.find(targetedUser => targetedUser.username === msg.target).data.find(room => room.target === user.username)
+                if (targetedRoomRemote == undefined) {
+                  console.log("Remote Undefined")
+                } else {
+                  targetedRoomRemote.message.push({
+                    remote : true,
+                    data: msg.data
+                  })
+                  targetedRoomRemote.updated = false;
+                }
+                console.log(targetedRoomLocal)
+                console.log(targetedRoomRemote)
+              })
+              let checkDataChanges = () => {
+                user.data.every(room => {
+                  if (!room.updated) {
+                    socket.emit("serverDataUpdate", user.data);
+                    user.data.forEach(element => {
+                      element.updated = true;
+                    })
+                    return false;
+                  } else {return true};
+                })
+              }  
+              let dataChecker = setInterval(checkDataChanges,500);
+              dataChecker;
+              socket.on('disconnect', ()=>{
+                clearInterval(dataChecker)
               })
           }
       }
