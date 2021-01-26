@@ -436,6 +436,18 @@
                 opacity: 0%;
                 transform: translateY(-100%);
             }
+            #home-wrapper{
+                position: absolute;
+                top: 0%;
+                left: 0%;
+                width: 100%;
+                height: 100%;
+                transition-duration: 0.3s;
+            }
+            #home-wrapper.hidden{
+                opacity: 0%;
+                transform: translateY(-100%);
+            }
                 
     </style>
 </head>
@@ -476,6 +488,10 @@
         </div>     
         <div id="settings-wrapper" class="hidden">
             <button class="btn btn-danger" id="settings-logout">Log out</button>
+        </div>
+        <div id="home-wrapper">
+            <button class="btn btn-primary">Change State</button>
+            <p>Current state:</p>
         </div>
     </div>
     <div id="menu-bar">
@@ -525,6 +541,16 @@
                 if (Messenger.target !== '') {
                     User.refreshMessage()
                 } 
+            });
+            socket.on('pushDevicesData',(data)=>{
+                Components.home.element.innerHTML = ''
+                data.forEach(device => {
+                    Components.home.element.innerHTML += `
+                    <button class='btn btn-primary' onclick='socket.emit("changeDeviceState","${device.name}")'>Change ${device.name} state</button>
+                    <p>Current state: ${device.state}</p>
+                    `
+                })
+                
             })
         }
     })
@@ -663,6 +689,18 @@
                 }
             }
         },
+        home: {
+            name: "home",
+            element:document.getElementById("home-wrapper"),
+            toggle: (visible) => {
+                const element = document.getElementById("home-wrapper");
+                if (visible) {
+                    element.classList.remove("hidden")
+                } else {
+                    element.classList.add("hidden")
+                }
+            }
+        },
     }
     const ComponentsManager = {
         activateDiv: (id) => {
@@ -711,7 +749,8 @@
                 element: document.getElementById("menu-button-home"),
                 action: () => {
                     console.log("Home")
-                    ComponentsManager.activateDiv("inbox")
+                    ComponentsManager.activateDiv("home")
+                    socket.emit('getDevicesData')
                 }
             },
             {

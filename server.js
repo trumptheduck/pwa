@@ -11,6 +11,7 @@ let users = [
       salt: 'b76b1eb31e8a',
       hashedpassword: '10c17d561254b5184fbd5ccb397aae868b3c08fdc83c3f932858902c14c96fb4949ba75147624472abce3872202f6d185d55fb7841018c6d8f8c09089f11b3d6'
     },
+    apiKey: "ylcVoPjZzKUeCuQWXsgkTNtyqkmGSWKi7zLypYBcFrixOs0YoM3YUHYIhvnCltvB",
     data: [
       {
         target: "hanghang1323",
@@ -46,7 +47,22 @@ let users = [
     ]
   },
 ];
-
+var devices = [
+  {
+    apiKey: "ylcVoPjZzKUeCuQWXsgkTNtyqkmGSWKi7zLypYBcFrixOs0YoM3YUHYIhvnCltvB",
+    data :[
+      {
+        name: "ledArray",
+        stateList: [
+          ['000','111'],
+          ['100','010','001','010'],
+          ['000','000','001','010','100','100','101','110','110','111','111'],
+        ],
+        state: ['000','111'],
+      }
+    ]
+  }
+]
 
 //Password hash
 let crypto = require('crypto');
@@ -107,6 +123,7 @@ let makeid = (length) => {
     return result;
  }
 //End of password hash
+console.log(makeid(64))
 const AccountManager = {
   newAccount(username,password) {
     let accountExisted = users.find(user => user.username === username)
@@ -173,6 +190,9 @@ io.on('connection',(socket)=>{
                 console.log(targetedRoomLocal)
                 console.log(targetedRoomRemote)
               })
+              socket.on('getDevicesData',()=>{
+               socket.emit('pushDevicesData',devices.find(device => device.apiKey === user.apiKey).data)
+              })
               let checkDataChanges = () => {
                 user.data.every(room => {
                   if (!room.updated) {
@@ -184,6 +204,17 @@ io.on('connection',(socket)=>{
                   } else {return true};
                 })
               }  
+              socket.on('changeDeviceState',(deviceName)=> {
+                let repo = devices.find(device => device.apiKey === user.apiKey).data
+                let device = repo.find(device => device.name === deviceName)
+                if (device.stateList.indexOf(device.state)+2>device.stateList.length) {
+                  var nextState = device.stateList[0];
+                } else {
+                  var nextState = device.stateList[device.stateList.indexOf(device.state)+1]
+                }
+                device.state = nextState
+                socket.emit('pushDevicesData',devices.find(device => device.apiKey === user.apiKey).data)
+              })
               let dataChecker = setInterval(checkDataChanges,500);
               dataChecker;
               socket.on('disconnect', ()=>{
@@ -193,7 +224,7 @@ io.on('connection',(socket)=>{
       }
   })
   socket.on('new-account', (credentials)=>{
-      let user = users.find(user => user.username = credentials.username)
+      let user = users.find(user => user.username === credentials.username)
       if (user === undefined) {
           AccountManager.newAccount(credentials.username,credentials.password)
           socket.emit('loginState',"Account created successfully")
@@ -214,9 +245,36 @@ app.get('/devices', function(req, res) {
   res.sendFile(path.join(__dirname, 'public/messenger.html'))
 })
 app.get('/test', function(req, res) {
-  res.sendFile(path.join(__dirname, 'public/test.html'))
+  res.sendFile(path.join(__dirname, 'public/push/index.html'))
 })
-
+app.get('/api/get/?:apiKey/?:device/?:query',(req,res)=>{
+  if (req.params?.apiKey !== undefined) {
+    var repo = devices.find(device => device.apiKey === req.params.apiKey)
+    if (repo?.apiKey !== undefined) {
+      var device = repo.data.find(device => device.name === req.params.device)
+      if (device?.name !== undefined) {
+        switch (req.params?.query) {
+          case 'state':
+            res.send(device.state)
+          break;
+          default:
+           res.send("ERR: INVALID_QUERY")
+           res.status(204);
+           ;
+        }
+      } else {
+        res.status(203)
+        res.send('ERR: DEVICE_NAME_NOT_FOUND')
+      }
+    } else {
+      res.status(202)
+      res.send('ERR: INVALID_API_KEY')
+    }
+  } else {
+    res.status(201)
+    res.send('ERR: INVALID_API_KEY')
+  }
+})
 http.listen(httpPort, function () {
   console.log(`Listening on port ${httpPort}!`)
 })
