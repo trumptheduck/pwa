@@ -549,6 +549,9 @@
                     <div id='device-${device.name}'>
                         <button class='btn btn-primary' onclick='socket.emit("cycleDeviceState","${device.name}")'>Cycle saved ${device.name} state</button>
                         <p>Current state: ${device.state}</p>
+                        <p>Frame duration: ${device.delay}</p>
+                        <input id='device-${device.name}-delay' type="number" value="${device.delay}"placeholder='Duration'>
+                        <button class ='btn btn-primary' onclick='User.changeDeviceDelay("${device.name}")'>Change duration</button>
                         <input id='device-${device.name}-input' placeholder='Custom state'>
                         <button class ='btn btn-primary' onclick='User.changeDeviceState("${device.name}")'>Change state</button>
                         </div>
@@ -596,6 +599,10 @@
         changeDeviceState(name) {
             let stateData = document.getElementById(`device-${name}-input`).value;
             socket.emit('changeDeviceState',{name : name, state : stateData}); 
+        },
+        changeDeviceDelay(name) {
+            let stateData = document.getElementById(`device-${name}-delay`).value;
+            socket.emit('changeDeviceDelay',{name : name, delay : stateData}); 
         }
     }
     const AccountManager = {

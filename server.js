@@ -60,6 +60,7 @@ var devices = [
           "000/,000/,001/,010/,100/,100/,101/,110/,110/,111/,111.",
         ],
         state: "000.",
+        delay: 100,
       }
     ]
   }
@@ -300,6 +301,17 @@ io.on('connection',(socket)=>{
                   socket.emit('deviceStateError',verifierMessage)
                 }
               })
+              socket.on('changeDeviceDelay',(data)=> {
+                if (data.delay <= 49) {
+                  socket.emit('deviceStateError',"Invalid delay value!");
+                } else {
+                  let repo = devices.find(device => device.apiKey === user.apiKey).data
+                  let device = repo.find(device => device.name === data.name)
+                  device.delay = data.delay;
+                  socket.emit('pushDevicesData',devices.find(device => device.apiKey === user.apiKey).data)
+                }
+
+              })
               let dataChecker = setInterval(checkDataChanges,500);
               dataChecker;
               socket.on('disconnect', ()=>{
@@ -341,6 +353,9 @@ app.get('/api/get/?:apiKey/?:device/?:query',(req,res)=>{
         switch (req.params?.query) {
           case 'state':
             res.send(device.state)
+          break;
+          case 'delay':
+            res.send(device.delay.toString())
           break;
           default:
            res.send("ERR: INVALID_QUERY")
