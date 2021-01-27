@@ -352,10 +352,10 @@ app.get('/api/get/?:apiKey/?:device/?:query',(req,res)=>{
       if (device?.name !== undefined) {
         switch (req.params?.query) {
           case 'state':
-            res.send(device.state)
+            res.send(`?${device.delay.toString()}!,${device.state}`)
           break;
           case 'delay':
-            res.send(device.delay.toString())
+            res.send()
           break;
           default:
            res.send("ERR: INVALID_QUERY")
