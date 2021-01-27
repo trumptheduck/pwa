@@ -54,11 +54,12 @@ var devices = [
       {
         name: "ledArray",
         stateList: [
-          ['000','111'],
-          ['100','010','001','010'],
-          ['000','000','001','010','100','100','101','110','110','111','111'],
+          "000.",
+          "000/,111.",
+          "100/,010/,001/,010.",
+          "000/,000/,001/,010/,100/,100/,101/,110/,110/,111/,111.",
         ],
-        state: ['000','111'],
+        state: "000.",
       }
     ]
   }
@@ -123,7 +124,80 @@ let makeid = (length) => {
     return result;
  }
 //End of password hash
-console.log(makeid(64))
+const StateData = {
+    stateDataVerifier(input) {
+      if (typeof(input) !== "string") {
+          //console.error(`Input is not a string!`);
+          return `Input is not a string!`;
+      }
+      var letters = /^[01/.,]+$/
+      if (input.match(letters) === null) {
+          //console.error(`Only "0" "1" "/" "," "." are allowed!`);
+          return `Only "0" "1" "/" "," "." are allowed!`;
+      }
+      var counter = 0;
+      for(let i = 0; i < input.length -1;i++) {
+          if (input[i] === '.') {
+              //.error('Illegal end "." symbol at char: ',i+1);
+              return `Illegal end "." symbol at char: ${i + 1}`;
+              break;             
+          }
+          if (input[i] === "0"||input[i] === "1") {
+            counter++
+          }
+      }
+      if (counter <= 0) {
+        //console.error('No digital state value found');
+        return 'No digital state value found';
+      }
+      if (input[input.length-1]!=='.') {
+          //console.error(`"." expexted at the end of the script!`);
+          return `"." expexted at the end of the script!`;
+      } else {
+          var tokens = [];
+          var childToken = '';
+          for (let i = 0; i < input.length;i++) {
+              if (i === (input.length-1)) {
+                  childToken += input[i];
+                  tokens.push(childToken);
+                  childToken = ''
+              } else {
+                  if (input[i] !== ',') {
+                  childToken += input[i];
+                  } else {
+                      tokens.push(childToken);
+                      childToken = ''
+                  }
+              } 
+          }
+          var tokenFixedLength = tokens[0].length;
+          for (let i = 0; i < tokens.length; i++) {
+              if (tokens[i].length !== tokenFixedLength) {
+                  //console.error("Each token must be the same length: ",`${tokens[i]} at token ${i}`);
+                  return `Each token must be the same length: ${tokens[i]} at token ${i}`;
+                  break;
+              }
+          };
+          for (let i = 0; i < tokens.length; i++) {
+            for (let j = 0;j< tokens[i].length-1; j++) {
+              if (tokens[i][j] === '/') {
+                  //console.error("Illegal break symbol: ",`${tokens[i]} at token ${i}`)
+                  return `Illegal break symbol: ${tokens[i]} at token ${i}`;  
+                  break;
+              }
+            }
+              if (i !== (tokens.length-1)) {
+                  if(tokens[i][tokens[i].length-1] !== '/') {
+                     // console.error("Break symbol expected: ",`${tokens[i]} at token ${i}`)
+                      return `Break symbol expected: ${tokens[i]} at token ${i}`;  
+                      break;
+                  }
+              }
+          }
+          return true;
+      }
+  }
+}
 const AccountManager = {
   newAccount(username,password) {
     let accountExisted = users.find(user => user.username === username)
@@ -204,7 +278,7 @@ io.on('connection',(socket)=>{
                   } else {return true};
                 })
               }  
-              socket.on('changeDeviceState',(deviceName)=> {
+              socket.on('cycleDeviceState',(deviceName)=> {
                 let repo = devices.find(device => device.apiKey === user.apiKey).data
                 let device = repo.find(device => device.name === deviceName)
                 if (device.stateList.indexOf(device.state)+2>device.stateList.length) {
@@ -214,6 +288,17 @@ io.on('connection',(socket)=>{
                 }
                 device.state = nextState
                 socket.emit('pushDevicesData',devices.find(device => device.apiKey === user.apiKey).data)
+              });
+              socket.on('changeDeviceState',(data) => {
+                var verifierMessage = StateData.stateDataVerifier(data.state)
+                if( verifierMessage === true) {
+                  let repo = devices.find(device => device.apiKey === user.apiKey).data
+                  let device = repo.find(device => device.name === data.name)
+                  device.state = data.state
+                  socket.emit('pushDevicesData',devices.find(device => device.apiKey === user.apiKey).data)
+                } else {
+                  socket.emit('deviceStateError',verifierMessage)
+                }
               })
               let dataChecker = setInterval(checkDataChanges,500);
               dataChecker;

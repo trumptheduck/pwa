@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+<body>
+    <script>
+        let input = "001/,000/,010."
+        function stateDataVerifier(input) {
+            if (typeof(input) !== "string") {
+                console.error(`Input is not a string!`);
+                return false;
+            }
+            var letters = /^[01/.,]+$/
+            if (input.match(letters) === null) {
+                console.error(`Only "0" "1" "/" "," "." are allowed!`);
+                return false;
+            }
+            for(let i = 0; i < input.length -1;i++) {
+                if (input[i] === '.') {
+                    console.error('Illegal end "." symbol at char: ',i+1);
+                    return false;
+                    break;             
+                }
+            }
+            if (input[input.length-1]!=='.') {
+                console.error(`"." expexted at the end of the script!`);
+                return false;
+            } else {
+                var tokens = [];
+                var childToken = '';
+                for (let i = 0; i < input.length;i++) {
+                    if (i === (input.length-1)) {
+                        childToken += input[i];
+                        tokens.push(childToken);
+                        childToken = ''
+                    } else {
+                        if (input[i] !== ',') {
+                        childToken += input[i];
+                        } else {
+                            tokens.push(childToken);
+                            childToken = ''
+                        }
+                    } 
+                }
+                var tokenFixedLength = tokens[0].length;
+                for (let i = 0; i < tokens.length; i++) {
+                    if (tokens[i].length !== tokenFixedLength) {
+                        console.error("Each token must be the same length: ",`${tokens[i]} at token ${i}`);
+                        return false;
+                        break;
+                    }
+                };
+                for (let i = 0; i < tokens.length; i++) {
+                    if (i !== (tokens.length-1)) {
+                        if(tokens[i][tokens[i].length-1] !== '/') {
+                            console.error("Break symbol expected: ",`${tokens[i]} at token ${i}`)
+                            return false;  
+                            break;
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+    </script>
+</body>
+</html>

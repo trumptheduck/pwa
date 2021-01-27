@@ -546,11 +546,18 @@
                 Components.home.element.innerHTML = ''
                 data.forEach(device => {
                     Components.home.element.innerHTML += `
-                    <button class='btn btn-primary' onclick='socket.emit("changeDeviceState","${device.name}")'>Change ${device.name} state</button>
-                    <p>Current state: ${device.state}</p>
+                    <div id='device-${device.name}'>
+                        <button class='btn btn-primary' onclick='socket.emit("cycleDeviceState","${device.name}")'>Cycle saved ${device.name} state</button>
+                        <p>Current state: ${device.state}</p>
+                        <input id='device-${device.name}-input' placeholder='Custom state'>
+                        <button class ='btn btn-primary' onclick='User.changeDeviceState("${device.name}")'>Change state</button>
+                        </div>
                     `
                 })
                 
+            })
+            socket.on("deviceStateError",(data)=> {
+                alert(data)
             })
         }
     })
@@ -585,6 +592,10 @@
                     `
             }
             Messenger.body.scrollTop = Messenger.body.scrollHeight;
+        },
+        changeDeviceState(name) {
+            let stateData = document.getElementById(`device-${name}-input`).value;
+            socket.emit('changeDeviceState',{name : name, state : stateData}); 
         }
     }
     const AccountManager = {
